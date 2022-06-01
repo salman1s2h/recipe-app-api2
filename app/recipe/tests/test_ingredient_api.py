@@ -1,6 +1,5 @@
-
 """
-Tests for the tags API.
+This is used to test the ingrident function testing
 """
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -9,25 +8,23 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Tag
+from core.models import Ingredient
 
-from recipe.serializers import TagSerializer
+from recipe.serializers import IngredientSerializer
 
-
-TAGS_URL = reverse('recipe:tag-list')
+INGREDIENTS_URL = reverse('recipe:ingredient-list')
 
 
 def create_user(email='user@example.com', password='testpass123'):
     """Create and return a user."""
     return get_user_model().objects.create_user(email=email, password=password)
 
-
 def detail_url(tag_id):
-    return reverse('recipe:tag-detail',args=[tag_id])
+    return reverse('recipe:ingredient-detail',args=[tag_id])
 
 
 
-class PublicTagsApiTests(TestCase):
+class PublicIngredientApiTests(TestCase):
     """Test unauthenticated API requests."""
 
     def setUp(self):
@@ -35,12 +32,12 @@ class PublicTagsApiTests(TestCase):
 
     def test_auth_required(self):
         """Test auth is required for retrieving tags."""
-        res = self.client.get(TAGS_URL)
+        res = self.client.get(INGREDIENTS_URL)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class PrivateTagsApiTests(TestCase):
+class PrivateIngredientApiTests(TestCase):
     """Test authenticated API requests."""
 
     def setUp(self):
@@ -48,48 +45,52 @@ class PrivateTagsApiTests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(self.user)
 
-    def test_retrieve_tags(self):
+
+    def test_retrieve_ingredient(self):
         """Test retrieving a list of tags."""
-        Tag.objects.create(user=self.user, name='Vegan')
-        Tag.objects.create(user=self.user, name='Dessert')
+        Ingredient.objects.create(user=self.user, name='Haldi')
+        Ingredient.objects.create(user=self.user, name='Namaak')
 
-        res = self.client.get(TAGS_URL)
+        res = self.client.get(INGREDIENTS_URL)
 
-        tags = Tag.objects.all().order_by('-name')
-        serializer = TagSerializer(tags, many=True)
+        tags = Ingredient.objects.all().order_by('-name')
+        serializer = IngredientSerializer(tags, many=True)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
-    def test_tags_limited_to_user(self):
+
+    def test_ingredient_limited_to_user(self):
         """Test list of tags is limited to authenticated user."""
         user2 = create_user(email='user2@example.com')
-        Tag.objects.create(user=user2, name='Fruity')
-        tag = Tag.objects.create(user=self.user, name='Comfort Food')
+        Ingredient.objects.create(user=user2, name='kaaali Mirch')
+        tag = Ingredient.objects.create(user=self.user, name='Elachi')
 
-        res = self.client.get(TAGS_URL)
+        res = self.client.get(INGREDIENTS_URL)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]['name'], tag.name)
         self.assertEqual(res.data[0]['id'], tag.id)
 
-    def test_update_tag(self):
+    def test_update_ingredient(self):
         """Test updating a tag."""
-        tag = Tag.objects.create(user=self.user, name='After Dinner')
+        ingredient = Ingredient.objects.create(user=self.user, name='After Dinner')
 
         payload = {'name': 'Dessert'}
-        url = detail_url(tag.id)
+        url = detail_url(ingredient.id)
         res = self.client.patch(url, payload)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        tag.refresh_from_db()
-        self.assertEqual(tag.name, payload['name'])
+        ingredient.refresh_from_db()
+        self.assertEqual(ingredient.name, payload['name'])
 
-    def test_delete_tag(self):
+    def test_delete_ingredient(self):
         """Test deleting a recipe successful."""
-        tag = Tag.objects.create(user=self.user, name='After Dinner')
+        ingredient = Ingredient.objects.create(user=self.user, name='After Dinner')
 
-        url = detail_url(tag.id)
+        url = detail_url(ingredient.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Tag.objects.filter(id=tag.id).exists())
+        self.assertFalse(Ingredient.objects.filter(id=ingredient.id).exists())
+
+
